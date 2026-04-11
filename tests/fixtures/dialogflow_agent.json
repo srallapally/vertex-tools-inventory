@@ -1,0 +1,11 @@
+{
+  "agents": [
+    {
+      "agent_id": "dfcx-agent-001",
+      "project_id": "demo-proj",
+      "location": "us-central1",
+      "display_name": "Support Agent",
+      "resource_name": "projects/demo-proj/locations/us-central1/agents/dfcx-agent-001"
+    }
+  ]
+}

@@ -12,6 +12,7 @@ def _write_config(path: Path) -> None:
             '{"flavor":"dialogflowcx",'
             '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
             '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":false}'
         )
@@ -66,6 +67,7 @@ def test_dialogflow_flavor_accepts_valid_dialogflow_fixture_file(tmp_path: Path)
         (
             '{"flavor":"dialogflowcx",'
             '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":true}'
         )
@@ -82,6 +84,7 @@ def test_vertex_flavor_accepts_valid_vertex_fixture_file(tmp_path: Path) -> None
         (
             '{"flavor":"vertexai",'
             '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":true}'
         )
@@ -98,6 +101,7 @@ def test_dialogflow_fixture_directory_raises_value_error(tmp_path: Path) -> None
         (
             '{"flavor":"dialogflowcx",'
             '"dialogflow_fixture_path":"tests/fixtures",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":true}'
         )
@@ -114,6 +118,7 @@ def test_vertex_fixture_missing_file_raises_value_error(tmp_path: Path) -> None:
         (
             '{"flavor":"vertexai",'
             '"vertex_fixture_path":"tests/fixtures/missing.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":true}'
         )
@@ -131,6 +136,7 @@ def test_both_flavor_requires_both_fixture_files(tmp_path: Path) -> None:
             '{"flavor":"both",'
             '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
             '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":true}'
         )
@@ -148,6 +154,7 @@ def test_cli_overrides_apply_before_validation(tmp_path: Path) -> None:
         (
             '{"flavor":"dialogflowcx",'
             '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":true}'
         )
@@ -166,6 +173,7 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
             '{"flavor":"both",'
             '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
             '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
             f'"output_dir":"{output_dir}",'
             '"fixtures":true}'
         )
@@ -177,7 +185,27 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
 
     assert (output_dir / "agents.json").exists()
     assert (output_dir / "identity-bindings.json").exists()
-    assert json.loads((output_dir / "identity-bindings.json").read_text()) == []
+    identity_bindings = json.loads((output_dir / "identity-bindings.json").read_text())
+    assert any(
+        binding["agentId"] == "dfcx-agent-001"
+        and binding["sourceTag"] == "DIRECT_RESOURCE_BINDING"
+        and binding["iamMember"] == "user:alice@example.com"
+        and binding["scope"] == "resource"
+        for binding in identity_bindings
+    )
+    assert any(
+        binding["agentId"] == "re-001"
+        and binding["sourceTag"] == "INHERITED_PROJECT_BINDING"
+        and binding["iamMember"] == "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com"
+        and binding["scope"] == "project"
+        for binding in identity_bindings
+    )
+    assert any(
+        binding["agentId"] == "re-001"
+        and binding["iamMember"] == "group:analysts@example.com"
+        and binding["expanded"] is False
+        for binding in identity_bindings
+    )
     assert json.loads((output_dir / "agents.json").read_text()) == [
         {
             "id": "dfcx-agent-001",
@@ -208,3 +236,53 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
             "guardrailId": None,
         },
     ]
+
+
+def test_fixture_mode_requires_iam_fixture_path(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    with pytest.raises(ValueError, match="iam_fixture_path is required"):
+        load_config(args)
+
+
+def test_fixture_mode_iam_fixture_path_must_exist(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"iam_fixture_path":"tests/fixtures/missing_iam.json",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    with pytest.raises(ValueError, match="iam_fixture_path does not exist"):
+        load_config(args)
+
+
+def test_fixture_mode_iam_fixture_path_must_be_file(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"iam_fixture_path":"tests/fixtures",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    with pytest.raises(ValueError, match="iam_fixture_path must be a file"):
+        load_config(args)

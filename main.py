@@ -25,16 +25,10 @@ def run(config: InventoryConfig) -> None:
         if config.dialogflow_fixture_path is None:
             raise ValueError("dialogflow_fixture_path is required for dialogflowcx")
         agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
-        resource_policies, project_policies = collect_iam_policies_from_fixture(
-            config.dialogflow_fixture_path
-        )
     elif config.flavor == "vertexai":
         if config.vertex_fixture_path is None:
             raise ValueError("vertex_fixture_path is required for vertexai")
         agents = collect_reasoning_engines_from_fixture(config.vertex_fixture_path)
-        resource_policies, project_policies = collect_iam_policies_from_fixture(
-            config.vertex_fixture_path
-        )
     elif config.flavor == "both":
         if config.dialogflow_fixture_path is None or config.vertex_fixture_path is None:
             raise ValueError(
@@ -42,17 +36,15 @@ def run(config: InventoryConfig) -> None:
             )
         agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
         agents.extend(collect_reasoning_engines_from_fixture(config.vertex_fixture_path))
-
-        dialogflow_resource_policies, dialogflow_project_policies = (
-            collect_iam_policies_from_fixture(config.dialogflow_fixture_path)
-        )
-        vertex_resource_policies, vertex_project_policies = collect_iam_policies_from_fixture(
-            config.vertex_fixture_path
-        )
-        resource_policies = {**dialogflow_resource_policies, **vertex_resource_policies}
-        project_policies = {**dialogflow_project_policies, **vertex_project_policies}
     else:
         raise ValueError(f"Unsupported flavor: {config.flavor}")
+
+    if config.fixtures:
+        if config.iam_fixture_path is None:
+            raise ValueError("iam_fixture_path is required for fixture mode")
+        resource_policies, project_policies = collect_iam_policies_from_fixture(
+            config.iam_fixture_path
+        )
 
     identity_bindings = normalize_identity_bindings(
         agents=agents,

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
@@ -19,6 +20,8 @@ class InventoryConfig:
     bucket_prefix: str = ""
     write_latest: bool = False
     fixtures: bool = True
+    project_ids: list[str] = field(default_factory=list)
+    locations: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, payload: dict) -> "InventoryConfig":
@@ -42,6 +45,19 @@ class InventoryConfig:
             Path(payload["iam_fixture_path"]) if payload.get("iam_fixture_path") else None
         )
         bucket_name = payload.get("bucketName")
+        project_ids = payload.get("project_ids") or payload.get("projectIds")
+        if project_ids is None and payload.get("project_id"):
+            project_ids = [payload["project_id"]]
+        if project_ids is None:
+            default_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+            project_ids = [default_project] if default_project else []
+
+        locations = payload.get("locations")
+        if locations is None and payload.get("location"):
+            locations = [payload["location"]]
+        if locations is None:
+            locations = ["us-central1"]
+
         bucket_prefix = payload.get("bucketPrefix", "")
         write_latest = payload.get("writeLatest", False)
 
@@ -100,6 +116,8 @@ class InventoryConfig:
             bucket_prefix=bucket_prefix,
             write_latest=write_latest,
             fixtures=fixtures,
+            project_ids=[str(project_id) for project_id in project_ids if str(project_id)],
+            locations=[str(location) for location in locations if str(location)],
         )
 
     @classmethod

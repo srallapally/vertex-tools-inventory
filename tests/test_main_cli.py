@@ -4,6 +4,8 @@ import json
 import pytest
 
 from main import load_config, parse_args, run
+from inventory.collectors.dialogflow import collect_dialogflow_agents_from_fixture
+from inventory.collectors.iam import collect_iam_policies_from_fixture
 
 
 def _write_config(path: Path) -> None:
@@ -349,3 +351,38 @@ def test_fixture_mode_iam_fixture_path_must_be_file(tmp_path: Path) -> None:
     args = parse_args(["--config", str(config_path)])
     with pytest.raises(ValueError, match="iam_fixture_path must be a file"):
         load_config(args)
+
+
+def test_live_mode_run_uses_live_collectors_for_dialogflow(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    output_dir = tmp_path / "out"
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            f'"output_dir":"{output_dir}",'
+            '"fixtures":false,'
+            '"projectIds":["demo-proj"],'
+            '"locations":["us-central1"]}'
+        )
+    )
+
+    calls: list[str] = []
+
+    def _dialogflow_live(_config):
+        calls.append("dialogflow-live")
+        return collect_dialogflow_agents_from_fixture(Path("tests/fixtures/dialogflow_agent.json"))
+
+    def _iam_live(_agents):
+        calls.append("iam-live")
+        return collect_iam_policies_from_fixture(Path("tests/fixtures/iam_policies.json"))
+
+    monkeypatch.setattr("main.collect_dialogflow_agents_live", _dialogflow_live)
+    monkeypatch.setattr("main.collect_iam_policies_live", _iam_live)
+
+    args = parse_args(["--config", str(config_path)])
+    config = load_config(args)
+    run(config)
+
+    assert calls == ["dialogflow-live", "iam-live"]
+    manifest = json.loads((output_dir / "manifest.json").read_text())
+    assert manifest["collectionMode"] == "live"

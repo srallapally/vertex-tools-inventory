@@ -4,9 +4,15 @@ import argparse
 import json
 from pathlib import Path
 
-from inventory.collectors.dialogflow import collect_dialogflow_agents_from_fixture
-from inventory.collectors.iam import collect_iam_policies_from_fixture
-from inventory.collectors.reasoning_engines import collect_reasoning_engines_from_fixture
+from inventory.collectors.dialogflow import (
+    collect_dialogflow_agents_from_fixture,
+    collect_dialogflow_agents_live,
+)
+from inventory.collectors.iam import collect_iam_policies_from_fixture, collect_iam_policies_live
+from inventory.collectors.reasoning_engines import (
+    collect_reasoning_engines_from_fixture,
+    collect_reasoning_engines_live,
+)
 from inventory.config import InventoryConfig
 from inventory.models import NormalizedIdentityBinding
 from inventory.normalize.bindings import normalize_identity_bindings
@@ -25,30 +31,42 @@ def run(config: InventoryConfig) -> None:
     resource_policies: dict[str, dict] = {}
     project_policies: dict[str, dict] = {}
 
-    if config.flavor == "dialogflowcx":
-        if config.dialogflow_fixture_path is None:
-            raise ValueError("dialogflow_fixture_path is required for dialogflowcx")
-        agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
-    elif config.flavor == "vertexai":
-        if config.vertex_fixture_path is None:
-            raise ValueError("vertex_fixture_path is required for vertexai")
-        agents = collect_reasoning_engines_from_fixture(config.vertex_fixture_path)
-    elif config.flavor == "both":
-        if config.dialogflow_fixture_path is None or config.vertex_fixture_path is None:
-            raise ValueError(
-                "dialogflow_fixture_path and vertex_fixture_path are required for both"
-            )
-        agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
-        agents.extend(collect_reasoning_engines_from_fixture(config.vertex_fixture_path))
-    else:
-        raise ValueError(f"Unsupported flavor: {config.flavor}")
-
     if config.fixtures:
+        if config.flavor == "dialogflowcx":
+            if config.dialogflow_fixture_path is None:
+                raise ValueError("dialogflow_fixture_path is required for dialogflowcx")
+            agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
+        elif config.flavor == "vertexai":
+            if config.vertex_fixture_path is None:
+                raise ValueError("vertex_fixture_path is required for vertexai")
+            agents = collect_reasoning_engines_from_fixture(config.vertex_fixture_path)
+        elif config.flavor == "both":
+            if config.dialogflow_fixture_path is None or config.vertex_fixture_path is None:
+                raise ValueError(
+                    "dialogflow_fixture_path and vertex_fixture_path are required for both"
+                )
+            agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
+            agents.extend(collect_reasoning_engines_from_fixture(config.vertex_fixture_path))
+        else:
+            raise ValueError(f"Unsupported flavor: {config.flavor}")
+
         if config.iam_fixture_path is None:
             raise ValueError("iam_fixture_path is required for fixture mode")
         resource_policies, project_policies = collect_iam_policies_from_fixture(
             config.iam_fixture_path
         )
+    else:
+        if config.flavor == "dialogflowcx":
+            agents = collect_dialogflow_agents_live(config)
+        elif config.flavor == "vertexai":
+            agents = collect_reasoning_engines_live(config)
+        elif config.flavor == "both":
+            agents = collect_dialogflow_agents_live(config)
+            agents.extend(collect_reasoning_engines_live(config))
+        else:
+            raise ValueError(f"Unsupported flavor: {config.flavor}")
+
+        resource_policies, project_policies = collect_iam_policies_live(agents)
 
     identity_bindings = normalize_identity_bindings(
         agents=agents,

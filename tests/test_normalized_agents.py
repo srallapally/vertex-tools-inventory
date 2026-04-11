@@ -29,7 +29,7 @@ def test_reasoning_engine_fixture_normalizes_agent() -> None:
     assert agents[0].flavor == "vertexai"
     assert agents[0].sourceType == "vertex_reasoning_engine"
     assert agents[0].id == "re-001"
-    assert agents[0].runtimeIdentity == "re-001@demo-proj.iam.gserviceaccount.com"
+    assert agents[0].runtimeIdentity == "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com"
 
 
 def test_writer_outputs_agents_identity_bindings_and_manifest(tmp_path: Path) -> None:

@@ -191,6 +191,7 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
         and binding["sourceTag"] == "DIRECT_RESOURCE_BINDING"
         and binding["iamMember"] == "user:alice@example.com"
         and binding["scope"] == "resource"
+        and binding["confidence"] == "HIGH"
         and binding["kind"] == "USER"
         for binding in identity_bindings
     )
@@ -202,6 +203,7 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
     assert any(
         binding["agentId"] == "re-001"
         and binding["iamMember"] == "group:analysts@example.com"
+        and binding["confidence"] == "MEDIUM"
         and binding["expanded"] is False
         and binding["kind"] == "GROUP"
         for binding in identity_bindings
@@ -230,7 +232,7 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
             "displayName": "Planner Engine",
             "resourceName": "projects/demo-proj/locations/us-central1/reasoningEngines/re-001",
             "sourceType": "vertex_reasoning_engine",
-            "runtimeIdentity": "re-001@demo-proj.iam.gserviceaccount.com",
+            "runtimeIdentity": "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com",
             "toolIds": [],
             "knowledgeBaseIds": [],
             "guardrailId": None,

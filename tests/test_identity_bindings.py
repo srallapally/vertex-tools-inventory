@@ -48,6 +48,7 @@ def test_direct_resource_binding_takes_precedence() -> None:
     assert bindings[0].scope == "resource"
     assert bindings[0].permissions == ["invoke"]
     assert bindings[0].kind == "USER"
+    assert bindings[0].confidence == "HIGH"
 
 
 def test_project_fallback_binding_when_resource_missing() -> None:
@@ -96,7 +97,7 @@ def test_runtime_identity_self_binding_not_emitted() -> None:
     agent = NormalizedAgent(
         **{
             **_agent().to_dict(),
-            "runtimeIdentity": "re-001@demo-proj.iam.gserviceaccount.com",
+            "runtimeIdentity": "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com",
         }
     )
     bindings = normalize_identity_bindings(
@@ -117,6 +118,35 @@ def test_runtime_identity_self_binding_not_emitted() -> None:
     )
 
     assert bindings == []
+
+
+def test_vertex_inherited_project_binding_uses_medium_confidence() -> None:
+    agent = NormalizedAgent(
+        **{
+            **_agent().to_dict(),
+            "flavor": "vertexai",
+            "sourceType": "vertex_reasoning_engine",
+        }
+    )
+    bindings = normalize_identity_bindings(
+        agents=[agent],
+        resource_policies={},
+        project_policies={
+            f"projects/{agent.projectId}": {
+                "bindings": [
+                    {
+                        "role": "roles/aiplatform.user",
+                        "members": ["user:bob@example.com"],
+                    }
+                ]
+            }
+        },
+    )
+
+    assert len(bindings) == 1
+    assert bindings[0].scope == "project"
+    assert bindings[0].sourceTag == "INHERITED_PROJECT_BINDING"
+    assert bindings[0].confidence == "MEDIUM"
 
 
 def test_empty_iam_response_returns_no_bindings() -> None:

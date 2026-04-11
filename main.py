@@ -8,6 +8,7 @@ from inventory.collectors.dialogflow import collect_dialogflow_agents_from_fixtu
 from inventory.collectors.iam import collect_iam_policies_from_fixture
 from inventory.collectors.reasoning_engines import collect_reasoning_engines_from_fixture
 from inventory.config import InventoryConfig
+from inventory.models import NormalizedIdentityBinding
 from inventory.normalize.bindings import normalize_identity_bindings
 from inventory.normalize.service_accounts import normalize_service_accounts
 from inventory.writers.json_writer import (
@@ -54,17 +55,39 @@ def run(config: InventoryConfig) -> None:
         project_policies=project_policies,
     )
     service_accounts = normalize_service_accounts(agents)
+    warnings = _build_manifest_warnings(identity_bindings)
+    flavors_included = sorted({agent.flavor for agent in agents})
+    project_ids_scanned = sorted({agent.projectId for agent in agents})
+    locations_scanned = sorted({agent.location for agent in agents})
 
     write_agents_json(config.output_dir, agents)
     write_identity_bindings_json(config.output_dir, identity_bindings)
     write_service_accounts_json(config.output_dir, service_accounts)
     write_manifest_json(
         config.output_dir,
-        config.flavor,
+        flavors_included,
+        project_ids_scanned,
+        locations_scanned,
         len(agents),
         len(identity_bindings),
         len(service_accounts),
+        warnings,
     )
+
+
+def _build_manifest_warnings(
+    identity_bindings: list[NormalizedIdentityBinding],
+) -> list[str]:
+    warnings: list[str] = []
+
+    if len(identity_bindings) == 0:
+        warnings.append("No identity bindings were generated.")
+    if any(binding.scope == "project" for binding in identity_bindings):
+        warnings.append("Project-level IAM fallback was used for one or more agents.")
+    if any(binding.expanded is False for binding in identity_bindings):
+        warnings.append("Group expansion is not performed in v1.")
+
+    return warnings
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

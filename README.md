@@ -144,3 +144,33 @@ Warnings are emitted when:
 - No identity bindings are generated.
 - Project-level fallback was used for one or more bindings.
 - One or more bindings are unexpanded groups.
+
+## Run as a Cloud Run Job container
+
+A minimal container image is included via `Dockerfile`. The default container command is:
+
+```bash
+python3 main.py --config /app/config/job-config.json
+```
+
+### Build locally
+
+```bash
+docker build -t vertex-tools-inventory:local .
+```
+
+### Run locally
+
+```bash
+docker run --rm \
+  -v "$(pwd)/config/job-config.json:/app/config/job-config.json:ro" \
+  -v "$(pwd)/out:/tmp/out" \
+  -e GOOGLE_CLOUD_PROJECT="your-project-id" \
+  vertex-tools-inventory:local
+```
+
+### Required config / environment
+
+- Provide a config file at `/app/config/job-config.json` (mount one in, or bake one in the image).
+- For live collection, set `projectIds` in config (or set `GOOGLE_CLOUD_PROJECT` for fallback when omitted).
+- If writing to GCS (`bucketName` set in config), authenticate with GCP credentials available to the container runtime.

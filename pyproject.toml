@@ -2,4 +2,6 @@
 name = "vertex-tools-inventory"
 version = "0.1.0"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "google-cloud-storage>=2.16.0,<4.0.0",
+]

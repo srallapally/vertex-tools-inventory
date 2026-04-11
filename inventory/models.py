@@ -23,3 +23,26 @@ class NormalizedAgent:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class NormalizedIdentityBinding:
+    id: str
+    agentId: str
+    agentVersion: str
+    principal: str
+    principalType: str
+    iamMember: str
+    iamRole: str
+    permissions: list[str]
+    scope: str
+    scopeType: str
+    scopeResourceName: str
+    sourceTag: str
+    confidence: float
+    kind: str
+    flavor: Flavor
+    expanded: bool
+
+    def to_dict(self) -> dict:
+        return asdict(self)

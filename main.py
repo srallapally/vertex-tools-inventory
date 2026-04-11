@@ -5,20 +5,36 @@ import json
 from pathlib import Path
 
 from inventory.collectors.dialogflow import collect_dialogflow_agents_from_fixture
+from inventory.collectors.iam import collect_iam_policies_from_fixture
 from inventory.collectors.reasoning_engines import collect_reasoning_engines_from_fixture
 from inventory.config import InventoryConfig
-from inventory.writers.json_writer import write_agents_json, write_manifest_json
+from inventory.normalize.bindings import normalize_identity_bindings
+from inventory.writers.json_writer import (
+    write_agents_json,
+    write_identity_bindings_json,
+    write_manifest_json,
+)
 
 
 def run(config: InventoryConfig) -> None:
+    agents = []
+    resource_policies: dict[str, dict] = {}
+    project_policies: dict[str, dict] = {}
+
     if config.flavor == "dialogflowcx":
         if config.dialogflow_fixture_path is None:
             raise ValueError("dialogflow_fixture_path is required for dialogflowcx")
         agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
+        resource_policies, project_policies = collect_iam_policies_from_fixture(
+            config.dialogflow_fixture_path
+        )
     elif config.flavor == "vertexai":
         if config.vertex_fixture_path is None:
             raise ValueError("vertex_fixture_path is required for vertexai")
         agents = collect_reasoning_engines_from_fixture(config.vertex_fixture_path)
+        resource_policies, project_policies = collect_iam_policies_from_fixture(
+            config.vertex_fixture_path
+        )
     elif config.flavor == "both":
         if config.dialogflow_fixture_path is None or config.vertex_fixture_path is None:
             raise ValueError(
@@ -26,11 +42,27 @@ def run(config: InventoryConfig) -> None:
             )
         agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
         agents.extend(collect_reasoning_engines_from_fixture(config.vertex_fixture_path))
+
+        dialogflow_resource_policies, dialogflow_project_policies = (
+            collect_iam_policies_from_fixture(config.dialogflow_fixture_path)
+        )
+        vertex_resource_policies, vertex_project_policies = collect_iam_policies_from_fixture(
+            config.vertex_fixture_path
+        )
+        resource_policies = {**dialogflow_resource_policies, **vertex_resource_policies}
+        project_policies = {**dialogflow_project_policies, **vertex_project_policies}
     else:
         raise ValueError(f"Unsupported flavor: {config.flavor}")
 
+    identity_bindings = normalize_identity_bindings(
+        agents=agents,
+        resource_policies=resource_policies,
+        project_policies=project_policies,
+    )
+
     write_agents_json(config.output_dir, agents)
-    write_manifest_json(config.output_dir, config.flavor, len(agents))
+    write_identity_bindings_json(config.output_dir, identity_bindings)
+    write_manifest_json(config.output_dir, config.flavor, len(agents), len(identity_bindings))
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

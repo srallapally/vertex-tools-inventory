@@ -3,7 +3,11 @@ import json
 
 from inventory.collectors.dialogflow import collect_dialogflow_agents_from_fixture
 from inventory.collectors.reasoning_engines import collect_reasoning_engines_from_fixture
-from inventory.writers.json_writer import write_agents_json, write_manifest_json
+from inventory.writers.json_writer import (
+    write_agents_json,
+    write_identity_bindings_json,
+    write_manifest_json,
+)
 
 
 def test_dialogflow_fixture_normalizes_agent() -> None:
@@ -28,16 +32,19 @@ def test_reasoning_engine_fixture_normalizes_agent() -> None:
     assert agents[0].runtimeIdentity == "re-001@demo-proj.iam.gserviceaccount.com"
 
 
-def test_writer_outputs_agents_and_manifest(tmp_path: Path) -> None:
+def test_writer_outputs_agents_identity_bindings_and_manifest(tmp_path: Path) -> None:
     fixture = Path("tests/fixtures/dialogflow_agent.json")
     agents = collect_dialogflow_agents_from_fixture(fixture)
 
     agents_path = write_agents_json(tmp_path, agents)
-    manifest_path = write_manifest_json(tmp_path, "dialogflowcx", len(agents))
+    identity_path = write_identity_bindings_json(tmp_path, [])
+    manifest_path = write_manifest_json(tmp_path, "dialogflowcx", len(agents), 0)
 
     assert agents_path.name == "agents.json"
+    assert identity_path.name == "identity-bindings.json"
     assert manifest_path.name == "manifest.json"
     assert agents_path.exists()
+    assert identity_path.exists()
     assert manifest_path.exists()
     assert json.loads(agents_path.read_text()) == [
         {

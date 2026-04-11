@@ -176,6 +176,8 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
     run(config)
 
     assert (output_dir / "agents.json").exists()
+    assert (output_dir / "identity-bindings.json").exists()
+    assert json.loads((output_dir / "identity-bindings.json").read_text()) == []
     assert json.loads((output_dir / "agents.json").read_text()) == [
         {
             "id": "dfcx-agent-001",

@@ -107,7 +107,7 @@ def _normalize_policy_bindings(
                 scopeResourceName=scope_resource_name,
                 sourceTag=binding_source_tag,
                 confidence=confidence,
-                kind="identity_binding",
+                kind=principal_type,
                 flavor=agent.flavor,
                 expanded=not group_member,
             )

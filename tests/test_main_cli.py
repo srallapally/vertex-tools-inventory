@@ -191,6 +191,7 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
         and binding["sourceTag"] == "DIRECT_RESOURCE_BINDING"
         and binding["iamMember"] == "user:alice@example.com"
         and binding["scope"] == "resource"
+        and binding["kind"] == "USER"
         for binding in identity_bindings
     )
     assert not any(
@@ -202,6 +203,7 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
         binding["agentId"] == "re-001"
         and binding["iamMember"] == "group:analysts@example.com"
         and binding["expanded"] is False
+        and binding["kind"] == "GROUP"
         for binding in identity_bindings
     )
     assert json.loads((output_dir / "agents.json").read_text()) == [

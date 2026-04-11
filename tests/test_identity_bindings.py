@@ -47,6 +47,7 @@ def test_direct_resource_binding_takes_precedence() -> None:
     assert bindings[0].sourceTag == "DIRECT_RESOURCE_BINDING"
     assert bindings[0].scope == "resource"
     assert bindings[0].permissions == ["invoke"]
+    assert bindings[0].kind == "USER"
 
 
 def test_project_fallback_binding_when_resource_missing() -> None:
@@ -88,6 +89,7 @@ def test_unexpanded_group_binding() -> None:
     assert bindings[0].expanded is False
     assert bindings[0].sourceTag == "UNEXPANDED_GROUP"
     assert bindings[0].permissions == ["invoke"]
+    assert bindings[0].kind == "GROUP"
 
 
 def test_runtime_identity_self_binding_not_emitted() -> None:

@@ -1,5 +1,7 @@
-from pathlib import Path
 import json
+import sys
+import types
+from pathlib import Path
 
 import pytest
 
@@ -58,6 +60,23 @@ def test_config_reads_gcs_batch_fields(tmp_path: Path) -> None:
     assert config.bucket_name == "vertex-tools-artifacts"
     assert config.bucket_prefix == "inventory/prod"
     assert config.write_latest is True
+
+
+def test_config_defaults_output_dir_for_batch_jobs(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    config = load_config(args)
+
+    assert config.output_dir == Path("/tmp/out")
 
 
 def test_config_plus_flavor_overrides_file_value(tmp_path: Path) -> None:
@@ -386,3 +405,60 @@ def test_live_mode_run_uses_live_collectors_for_dialogflow(monkeypatch: pytest.M
     assert calls == ["dialogflow-live", "iam-live"]
     manifest = json.loads((output_dir / "manifest.json").read_text())
     assert manifest["collectionMode"] == "live"
+
+
+def test_fixture_mode_run_generates_and_uploads_with_mocked_gcs_client(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output_dir = tmp_path / "out"
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
+            f'"output_dir":"{output_dir}",'
+            '"bucketName":"vertex-tools-artifacts",'
+            '"bucketPrefix":"inventory/prod",'
+            '"writeLatest":true,'
+            '"fixtures":true}'
+        )
+    )
+
+    uploaded: list[tuple[str, str]] = []
+
+    class FakeBlob:
+        def __init__(self, object_path: str):
+            self.object_path = object_path
+
+        def upload_from_filename(self, filename: str) -> None:
+            uploaded.append((self.object_path, filename))
+
+    class FakeBucket:
+        def blob(self, object_path: str) -> FakeBlob:
+            return FakeBlob(object_path)
+
+    class FakeClient:
+        def bucket(self, _bucket_name: str) -> FakeBucket:
+            return FakeBucket()
+
+    fake_storage = types.SimpleNamespace(Client=lambda: FakeClient())
+    monkeypatch.setitem(sys.modules, "google", types.ModuleType("google"))
+    monkeypatch.setitem(sys.modules, "google.cloud", types.ModuleType("google.cloud"))
+    monkeypatch.setitem(sys.modules, "google.cloud.storage", fake_storage)
+
+    args = parse_args(["--config", str(config_path)])
+    config = load_config(args)
+    run(config)
+
+    expected_files = {
+        "agents.json",
+        "identity-bindings.json",
+        "service-accounts.json",
+        "manifest.json",
+    }
+    assert expected_files.issubset({path.name for path in output_dir.iterdir()})
+    assert len(uploaded) == 8
+    uploaded_paths = {object_path for object_path, _ in uploaded}
+    assert any(path.startswith("inventory/prod/runs/") for path in uploaded_paths)
+    assert any(path.startswith("inventory/prod/latest/") for path in uploaded_paths)

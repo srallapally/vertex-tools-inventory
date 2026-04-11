@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from pathlib import Path
+import sys
 
 from inventory.collectors.dialogflow import (
     collect_dialogflow_agents_from_fixture,
@@ -24,6 +26,9 @@ from inventory.writers.json_writer import (
     write_service_accounts_json,
 )
 from inventory.writers.gcs_writer import upload_directory_to_gcs
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def run(config: InventoryConfig) -> None:
@@ -95,12 +100,19 @@ def run(config: InventoryConfig) -> None:
     )
 
     if config.bucket_name:
-        upload_directory_to_gcs(
+        upload_result = upload_directory_to_gcs(
             output_dir=config.output_dir,
             bucket_name=config.bucket_name,
             bucket_prefix=config.bucket_prefix,
             write_latest=config.write_latest,
         )
+        LOGGER.info("Final GCS run prefix: gs://%s/%s", config.bucket_name, upload_result["run_prefix"])
+        if upload_result["latest_prefix"] is not None:
+            LOGGER.info(
+                "Final GCS latest prefix: gs://%s/%s",
+                config.bucket_name,
+                upload_result["latest_prefix"],
+            )
 
 
 def _build_manifest_warnings(
@@ -151,6 +163,11 @@ def load_config(args: argparse.Namespace) -> InventoryConfig:
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    config = load_config(args)
-    run(config)
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    try:
+        args = parse_args()
+        config = load_config(args)
+        run(config)
+    except Exception:
+        LOGGER.exception("Inventory job failed.")
+        sys.exit(1)

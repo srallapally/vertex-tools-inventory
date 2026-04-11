@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from inventory.models import NormalizedAgent
+from inventory.models import NormalizedAgent, NormalizedIdentityBinding
 
 
 def write_agents_json(output_dir: Path, agents: list[NormalizedAgent]) -> Path:
@@ -14,14 +14,25 @@ def write_agents_json(output_dir: Path, agents: list[NormalizedAgent]) -> Path:
     return path
 
 
-def write_manifest_json(output_dir: Path, flavor: str, agent_count: int) -> Path:
+def write_identity_bindings_json(
+    output_dir: Path, bindings: list[NormalizedIdentityBinding]
+) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / "identity-bindings.json"
+    path.write_text(json.dumps([binding.to_dict() for binding in bindings], indent=2) + "\n")
+    return path
+
+
+def write_manifest_json(
+    output_dir: Path, flavor: str, agent_count: int, identity_binding_count: int
+) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / "manifest.json"
     payload = {
         "flavor": flavor,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "files": ["agents.json", "manifest.json"],
-        "counts": {"agents": agent_count},
+        "files": ["agents.json", "identity-bindings.json", "manifest.json"],
+        "counts": {"agents": agent_count, "identity_bindings": identity_binding_count},
     }
     path.write_text(json.dumps(payload, indent=2) + "\n")
     return path

@@ -15,6 +15,9 @@ class InventoryConfig:
     vertex_fixture_path: Path | None
     iam_fixture_path: Path | None
     output_dir: Path
+    bucket_name: str | None = None
+    bucket_prefix: str = ""
+    write_latest: bool = False
     fixtures: bool = True
 
     @classmethod
@@ -38,6 +41,9 @@ class InventoryConfig:
         iam_fixture_path = (
             Path(payload["iam_fixture_path"]) if payload.get("iam_fixture_path") else None
         )
+        bucket_name = payload.get("bucketName")
+        bucket_prefix = payload.get("bucketPrefix", "")
+        write_latest = payload.get("writeLatest", False)
 
         if fixtures:
             if flavor in {"dialogflowcx", "both"}:
@@ -90,6 +96,9 @@ class InventoryConfig:
             vertex_fixture_path=vertex_fixture_path,
             iam_fixture_path=iam_fixture_path,
             output_dir=output_dir,
+            bucket_name=bucket_name,
+            bucket_prefix=bucket_prefix,
+            write_latest=write_latest,
             fixtures=fixtures,
         )
 

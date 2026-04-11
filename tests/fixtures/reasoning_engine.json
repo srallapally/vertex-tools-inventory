@@ -5,7 +5,8 @@
       "project_id": "demo-proj",
       "location": "us-central1",
       "display_name": "Planner Engine",
-      "resource_name": "projects/demo-proj/locations/us-central1/reasoningEngines/re-001"
+      "resource_name": "projects/demo-proj/locations/us-central1/reasoningEngines/re-001",
+      "service_account_identity": "re-001@demo-proj.iam.gserviceaccount.com"
     }
   ]
 }

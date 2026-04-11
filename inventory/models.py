@@ -9,12 +9,17 @@ Flavor = Literal["dialogflowcx", "vertexai"]
 @dataclass(frozen=True)
 class NormalizedAgent:
     id: str
+    platform: str
     flavor: Flavor
-    project_id: str
+    projectId: str
     location: str
-    display_name: str
-    resource_name: str
-    source_type: str
+    displayName: str
+    resourceName: str
+    sourceType: str
+    runtimeIdentity: str | None
+    toolIds: list[str]
+    knowledgeBaseIds: list[str]
+    guardrailId: str | None
 
     def to_dict(self) -> dict:
         return asdict(self)

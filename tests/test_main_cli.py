@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import pytest
 
@@ -175,3 +176,33 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
     run(config)
 
     assert (output_dir / "agents.json").exists()
+    assert json.loads((output_dir / "agents.json").read_text()) == [
+        {
+            "id": "dfcx-agent-001",
+            "platform": "GOOGLE_VERTEX_AI",
+            "flavor": "dialogflowcx",
+            "projectId": "demo-proj",
+            "location": "us-central1",
+            "displayName": "Support Agent",
+            "resourceName": "projects/demo-proj/locations/us-central1/agents/dfcx-agent-001",
+            "sourceType": "dialogflowcx_agent",
+            "runtimeIdentity": None,
+            "toolIds": [],
+            "knowledgeBaseIds": [],
+            "guardrailId": None,
+        },
+        {
+            "id": "re-001",
+            "platform": "GOOGLE_VERTEX_AI",
+            "flavor": "vertexai",
+            "projectId": "demo-proj",
+            "location": "us-central1",
+            "displayName": "Planner Engine",
+            "resourceName": "projects/demo-proj/locations/us-central1/reasoningEngines/re-001",
+            "sourceType": "vertex_reasoning_engine",
+            "runtimeIdentity": "re-001@demo-proj.iam.gserviceaccount.com",
+            "toolIds": [],
+            "knowledgeBaseIds": [],
+            "guardrailId": None,
+        },
+    ]

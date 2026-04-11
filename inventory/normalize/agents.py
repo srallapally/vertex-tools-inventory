@@ -21,6 +21,12 @@ def normalize_dialogflow_agent(raw: dict) -> NormalizedAgent:
 
 
 def normalize_reasoning_engine(raw: dict) -> NormalizedAgent:
+    service_account = raw.get("service_account_identity", raw.get("service_account"))
+    runtime_identity = (
+        f"serviceAccount:{service_account}"
+        if service_account and not service_account.startswith("serviceAccount:")
+        else service_account
+    )
     return NormalizedAgent(
         id=raw["engine_id"],
         platform="GOOGLE_VERTEX_AI",
@@ -30,7 +36,7 @@ def normalize_reasoning_engine(raw: dict) -> NormalizedAgent:
         displayName=raw["display_name"],
         resourceName=raw["resource_name"],
         sourceType="vertex_reasoning_engine",
-        runtimeIdentity=raw.get("service_account_identity", raw.get("service_account")),
+        runtimeIdentity=runtime_identity,
         toolIds=[],
         knowledgeBaseIds=[],
         guardrailId=None,

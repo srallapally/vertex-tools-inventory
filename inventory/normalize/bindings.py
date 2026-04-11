@@ -26,7 +26,7 @@ def normalize_identity_bindings(
                     scope_type="AGENT_RESOURCE",
                     scope_resource_name=agent.resourceName,
                     source_tag="DIRECT_RESOURCE_BINDING",
-                    confidence=1.0,
+                    confidence="HIGH",
                 )
             )
             continue
@@ -46,7 +46,7 @@ def normalize_identity_bindings(
                 scope_type="PROJECT",
                 scope_resource_name=f"projects/{agent.projectId}",
                 source_tag="INHERITED_PROJECT_BINDING",
-                confidence=0.8,
+                confidence="MEDIUM",
             )
         )
 
@@ -70,7 +70,7 @@ def _normalize_policy_bindings(
     scope_type: str,
     scope_resource_name: str,
     source_tag: str,
-    confidence: float,
+    confidence: str,
 ) -> list[NormalizedIdentityBinding]:
     normalized_bindings: list[NormalizedIdentityBinding] = []
 

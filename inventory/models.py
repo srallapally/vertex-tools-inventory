@@ -39,7 +39,7 @@ class NormalizedIdentityBinding:
     scopeType: str
     scopeResourceName: str
     sourceTag: str
-    confidence: float
+    confidence: str
     kind: str
     flavor: Flavor
     expanded: bool

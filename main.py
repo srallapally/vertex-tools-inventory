@@ -65,6 +65,7 @@ def run(config: InventoryConfig) -> None:
     write_service_accounts_json(config.output_dir, service_accounts)
     write_manifest_json(
         config.output_dir,
+        "fixtures" if config.fixtures else "live",
         flavors_included,
         project_ids_scanned,
         locations_scanned,

@@ -42,6 +42,7 @@ def test_writer_outputs_agents_identity_bindings_and_manifest(tmp_path: Path) ->
     service_accounts_path = write_service_accounts_json(tmp_path, [])
     manifest_path = write_manifest_json(
         tmp_path,
+        "fixtures",
         ["dialogflowcx"],
         ["demo-proj"],
         ["us-central1"],
@@ -78,12 +79,35 @@ def test_writer_outputs_agents_identity_bindings_and_manifest(tmp_path: Path) ->
     manifest_payload = json.loads(manifest_path.read_text())
     assert manifest_payload["schemaVersion"] == "1.0"
     assert manifest_payload["platform"] == "GOOGLE_VERTEX_AI"
+    assert manifest_payload["collectionMode"] == "fixtures"
     assert manifest_payload["flavorsIncluded"] == ["dialogflowcx"]
     assert manifest_payload["projectIdsScanned"] == ["demo-proj"]
     assert manifest_payload["locationsScanned"] == ["us-central1"]
     assert manifest_payload["agentCount"] == 1
     assert manifest_payload["identityBindingCount"] == 0
     assert manifest_payload["serviceAccountCount"] == 0
+    assert manifest_payload["artifacts"] == {
+        "agents": {"file": "agents.json", "count": 1},
+        "identityBindings": {"file": "identity-bindings.json", "count": 0},
+        "serviceAccounts": {"file": "service-accounts.json", "count": 0},
+    }
     assert manifest_payload["warnings"] == ["No identity bindings were generated."]
     assert isinstance(manifest_payload["generatedAt"], str)
     assert manifest_payload["generatedAt"].endswith("Z")
+
+
+def test_writer_manifest_supports_live_collection_mode(tmp_path: Path) -> None:
+    manifest_path = write_manifest_json(
+        tmp_path,
+        "live",
+        ["vertexai"],
+        ["demo-proj"],
+        ["us-central1"],
+        0,
+        0,
+        0,
+        [],
+    )
+
+    manifest_payload = json.loads(manifest_path.read_text())
+    assert manifest_payload["collectionMode"] == "live"

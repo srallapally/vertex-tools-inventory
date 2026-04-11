@@ -1,0 +1,27 @@
+{
+  "resource_iam_policies": {
+    "projects/demo-proj/locations/us-central1/agents/dfcx-agent-001": {
+      "bindings": [
+        {
+          "role": "roles/dialogflow.client",
+          "members": [
+            "user:alice@example.com"
+          ]
+        }
+      ]
+    }
+  },
+  "project_iam_policies": {
+    "projects/demo-proj": {
+      "bindings": [
+        {
+          "role": "roles/viewer",
+          "members": [
+            "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com",
+            "group:analysts@example.com"
+          ]
+        }
+      ]
+    }
+  }
+}

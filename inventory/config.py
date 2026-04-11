@@ -13,6 +13,7 @@ class InventoryConfig:
     flavor: Flavor
     dialogflow_fixture_path: Path | None
     vertex_fixture_path: Path | None
+    iam_fixture_path: Path | None
     output_dir: Path
     fixtures: bool = True
 
@@ -33,6 +34,9 @@ class InventoryConfig:
             Path(payload["vertex_fixture_path"])
             if payload.get("vertex_fixture_path")
             else None
+        )
+        iam_fixture_path = (
+            Path(payload["iam_fixture_path"]) if payload.get("iam_fixture_path") else None
         )
 
         if fixtures:
@@ -69,10 +73,22 @@ class InventoryConfig:
                         f"{vertex_fixture_path}"
                     )
 
+            if iam_fixture_path is None:
+                raise ValueError(
+                    "iam_fixture_path is required for fixture mode when generating identity bindings"
+                )
+            if not iam_fixture_path.exists():
+                raise ValueError(f"iam_fixture_path does not exist: {iam_fixture_path}")
+            if not iam_fixture_path.is_file():
+                raise ValueError(
+                    f"iam_fixture_path must be a file, not a directory: {iam_fixture_path}"
+                )
+
         return cls(
             flavor=flavor,
             dialogflow_fixture_path=dialogflow_fixture_path,
             vertex_fixture_path=vertex_fixture_path,
+            iam_fixture_path=iam_fixture_path,
             output_dir=output_dir,
             fixtures=fixtures,
         )

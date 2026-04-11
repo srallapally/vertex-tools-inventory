@@ -248,6 +248,21 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
             "linkedAgentIds": ["re-001"],
         }
     ]
+    manifest = json.loads((output_dir / "manifest.json").read_text())
+    assert manifest["schemaVersion"] == "1.0"
+    assert manifest["platform"] == "GOOGLE_VERTEX_AI"
+    assert manifest["flavorsIncluded"] == ["dialogflowcx", "vertexai"]
+    assert manifest["projectIdsScanned"] == ["demo-proj"]
+    assert manifest["locationsScanned"] == ["us-central1"]
+    assert manifest["agentCount"] == 2
+    assert manifest["identityBindingCount"] == len(identity_bindings)
+    assert manifest["serviceAccountCount"] == 1
+    assert manifest["warnings"] == [
+        "Project-level IAM fallback was used for one or more agents.",
+        "Group expansion is not performed in v1.",
+    ]
+    assert isinstance(manifest["generatedAt"], str)
+    assert manifest["generatedAt"].endswith("Z")
 
 
 def test_fixture_mode_requires_iam_fixture_path(tmp_path: Path) -> None:

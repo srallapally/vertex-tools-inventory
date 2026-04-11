@@ -41,27 +41,27 @@ def write_service_accounts_json(
 
 def write_manifest_json(
     output_dir: Path,
-    flavor: str,
+    flavors_included: list[str],
+    project_ids_scanned: list[str],
+    locations_scanned: list[str],
     agent_count: int,
     identity_binding_count: int,
     service_account_count: int,
+    warnings: list[str],
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / "manifest.json"
     payload = {
-        "flavor": flavor,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "files": [
-            "agents.json",
-            "identity-bindings.json",
-            "service-accounts.json",
-            "manifest.json",
-        ],
-        "counts": {
-            "agents": agent_count,
-            "identity_bindings": identity_binding_count,
-            "service_accounts": service_account_count,
-        },
+        "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "schemaVersion": "1.0",
+        "platform": "GOOGLE_VERTEX_AI",
+        "flavorsIncluded": flavors_included,
+        "projectIdsScanned": project_ids_scanned,
+        "locationsScanned": locations_scanned,
+        "agentCount": agent_count,
+        "identityBindingCount": identity_binding_count,
+        "serviceAccountCount": service_account_count,
+        "warnings": warnings,
     }
     path.write_text(json.dumps(payload, indent=2) + "\n")
     return path

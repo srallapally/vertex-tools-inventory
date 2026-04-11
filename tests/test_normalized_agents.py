@@ -40,7 +40,16 @@ def test_writer_outputs_agents_identity_bindings_and_manifest(tmp_path: Path) ->
     agents_path = write_agents_json(tmp_path, agents)
     identity_path = write_identity_bindings_json(tmp_path, [])
     service_accounts_path = write_service_accounts_json(tmp_path, [])
-    manifest_path = write_manifest_json(tmp_path, "dialogflowcx", len(agents), 0, 0)
+    manifest_path = write_manifest_json(
+        tmp_path,
+        ["dialogflowcx"],
+        ["demo-proj"],
+        ["us-central1"],
+        len(agents),
+        0,
+        0,
+        ["No identity bindings were generated."],
+    )
 
     assert agents_path.name == "agents.json"
     assert identity_path.name == "identity-bindings.json"
@@ -66,3 +75,15 @@ def test_writer_outputs_agents_identity_bindings_and_manifest(tmp_path: Path) ->
             "guardrailId": None,
         }
     ]
+    manifest_payload = json.loads(manifest_path.read_text())
+    assert manifest_payload["schemaVersion"] == "1.0"
+    assert manifest_payload["platform"] == "GOOGLE_VERTEX_AI"
+    assert manifest_payload["flavorsIncluded"] == ["dialogflowcx"]
+    assert manifest_payload["projectIdsScanned"] == ["demo-proj"]
+    assert manifest_payload["locationsScanned"] == ["us-central1"]
+    assert manifest_payload["agentCount"] == 1
+    assert manifest_payload["identityBindingCount"] == 0
+    assert manifest_payload["serviceAccountCount"] == 0
+    assert manifest_payload["warnings"] == ["No identity bindings were generated."]
+    assert isinstance(manifest_payload["generatedAt"], str)
+    assert manifest_payload["generatedAt"].endswith("Z")

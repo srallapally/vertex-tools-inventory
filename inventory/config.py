@@ -29,7 +29,7 @@ class InventoryConfig:
         if flavor not in {"dialogflowcx", "vertexai", "both"}:
             raise ValueError(f"Unsupported flavor: {flavor}")
 
-        output_dir = Path(payload["output_dir"])
+        output_dir = Path(payload.get("output_dir", "/tmp/out"))
         fixtures = payload.get("fixtures", True)
         dialogflow_fixture_path = (
             Path(payload["dialogflow_fixture_path"])

@@ -1,0 +1,7 @@
+{
+  "flavor": "both",
+  "fixtures": false,
+  "projectIds": ["YOUR_GCP_PROJECT_ID"],
+  "locations": ["us-central1"],
+  "output_dir": "/tmp/out"
+}

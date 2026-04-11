@@ -17,6 +17,7 @@ from inventory.writers.json_writer import (
     write_manifest_json,
     write_service_accounts_json,
 )
+from inventory.writers.gcs_writer import upload_directory_to_gcs
 
 
 def run(config: InventoryConfig) -> None:
@@ -74,6 +75,14 @@ def run(config: InventoryConfig) -> None:
         len(service_accounts),
         warnings,
     )
+
+    if config.bucket_name:
+        upload_directory_to_gcs(
+            output_dir=config.output_dir,
+            bucket_name=config.bucket_name,
+            bucket_prefix=config.bucket_prefix,
+            write_latest=config.write_latest,
+        )
 
 
 def _build_manifest_warnings(

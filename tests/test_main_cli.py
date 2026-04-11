@@ -29,6 +29,33 @@ def test_config_only_invocation_uses_file_values(tmp_path: Path) -> None:
     assert config.flavor == "dialogflowcx"
     assert config.output_dir == Path("build/artifacts")
     assert config.fixtures is False
+    assert config.bucket_name is None
+    assert config.bucket_prefix == ""
+    assert config.write_latest is False
+
+
+def test_config_reads_gcs_batch_fields(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"iam_fixture_path":"tests/fixtures/iam_policies.json",'
+            '"output_dir":"build/artifacts",'
+            '"bucketName":"vertex-tools-artifacts",'
+            '"bucketPrefix":"inventory/prod",'
+            '"writeLatest":true,'
+            '"fixtures":false}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    config = load_config(args)
+
+    assert config.bucket_name == "vertex-tools-artifacts"
+    assert config.bucket_prefix == "inventory/prod"
+    assert config.write_latest is True
 
 
 def test_config_plus_flavor_overrides_file_value(tmp_path: Path) -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
+import json
 from pathlib import Path
 
 from inventory.collectors.dialogflow import collect_dialogflow_agents_from_fixture
@@ -12,12 +12,20 @@ from inventory.writers.json_writer import write_agents_json, write_manifest_json
 
 def run(config: InventoryConfig) -> None:
     if config.flavor == "dialogflowcx":
-        agents = collect_dialogflow_agents_from_fixture(config.fixture_path)
+        if config.dialogflow_fixture_path is None:
+            raise ValueError("dialogflow_fixture_path is required for dialogflowcx")
+        agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
     elif config.flavor == "vertexai":
-        agents = collect_reasoning_engines_from_fixture(config.fixture_path)
+        if config.vertex_fixture_path is None:
+            raise ValueError("vertex_fixture_path is required for vertexai")
+        agents = collect_reasoning_engines_from_fixture(config.vertex_fixture_path)
     elif config.flavor == "both":
-        agents = collect_dialogflow_agents_from_fixture(config.fixture_path)
-        agents.extend(collect_reasoning_engines_from_fixture(config.fixture_path))
+        if config.dialogflow_fixture_path is None or config.vertex_fixture_path is None:
+            raise ValueError(
+                "dialogflow_fixture_path and vertex_fixture_path are required for both"
+            )
+        agents = collect_dialogflow_agents_from_fixture(config.dialogflow_fixture_path)
+        agents.extend(collect_reasoning_engines_from_fixture(config.vertex_fixture_path))
     else:
         raise ValueError(f"Unsupported flavor: {config.flavor}")
 
@@ -44,19 +52,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def load_config(args: argparse.Namespace) -> InventoryConfig:
-    config = InventoryConfig.from_file(Path(args.config))
+    config_payload = json.loads(Path(args.config).read_text())
 
-    overrides: dict[str, object] = {}
+    overrides: dict[str, object] = dict(config_payload)
     if args.flavor is not None:
         overrides["flavor"] = args.flavor
     if args.output_dir is not None:
-        overrides["output_dir"] = Path(args.output_dir)
+        overrides["output_dir"] = args.output_dir
     if args.fixtures is not None:
         overrides["fixtures"] = args.fixtures
 
-    if overrides:
-        return replace(config, **overrides)
-    return config
+    return InventoryConfig.from_dict(overrides)
 
 
 if __name__ == "__main__":

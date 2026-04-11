@@ -80,9 +80,17 @@ def _normalize_policy_bindings(
             continue
 
         permissions = normalize_permissions_for_role(role)
+        if not _is_caller_access_binding(permissions):
+            continue
 
         for member in iam_binding.get("members", []):
             principal, principal_type = _parse_member(member)
+            if _is_runtime_identity_member(
+                member=member,
+                principal=principal,
+                runtime_identity=agent.runtimeIdentity,
+            ):
+                continue
             group_member = principal_type == "GROUP"
             binding_source_tag = "UNEXPANDED_GROUP" if group_member else source_tag
             binding = NormalizedIdentityBinding(
@@ -106,6 +114,21 @@ def _normalize_policy_bindings(
             normalized_bindings.append(binding)
 
     return normalized_bindings
+
+
+def _is_caller_access_binding(permissions: list[str]) -> bool:
+    return "invoke" in permissions or "manage" in permissions
+
+
+def _is_runtime_identity_member(
+    *,
+    member: str,
+    principal: str,
+    runtime_identity: str | None,
+) -> bool:
+    if not runtime_identity:
+        return False
+    return principal == runtime_identity or member == runtime_identity
 
 
 def _parse_member(member: str) -> tuple[str, str]:

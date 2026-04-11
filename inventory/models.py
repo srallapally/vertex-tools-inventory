@@ -46,3 +46,15 @@ class NormalizedIdentityBinding:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class NormalizedServiceAccount:
+    id: str
+    platform: str
+    email: str
+    projectId: str
+    linkedAgentIds: list[str]
+
+    def to_dict(self) -> dict:
+        return asdict(self)

@@ -9,10 +9,12 @@ from inventory.collectors.iam import collect_iam_policies_from_fixture
 from inventory.collectors.reasoning_engines import collect_reasoning_engines_from_fixture
 from inventory.config import InventoryConfig
 from inventory.normalize.bindings import normalize_identity_bindings
+from inventory.normalize.service_accounts import normalize_service_accounts
 from inventory.writers.json_writer import (
     write_agents_json,
     write_identity_bindings_json,
     write_manifest_json,
+    write_service_accounts_json,
 )
 
 
@@ -51,10 +53,18 @@ def run(config: InventoryConfig) -> None:
         resource_policies=resource_policies,
         project_policies=project_policies,
     )
+    service_accounts = normalize_service_accounts(agents)
 
     write_agents_json(config.output_dir, agents)
     write_identity_bindings_json(config.output_dir, identity_bindings)
-    write_manifest_json(config.output_dir, config.flavor, len(agents), len(identity_bindings))
+    write_service_accounts_json(config.output_dir, service_accounts)
+    write_manifest_json(
+        config.output_dir,
+        config.flavor,
+        len(agents),
+        len(identity_bindings),
+        len(service_accounts),
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

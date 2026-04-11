@@ -7,6 +7,7 @@ from inventory.writers.json_writer import (
     write_agents_json,
     write_identity_bindings_json,
     write_manifest_json,
+    write_service_accounts_json,
 )
 
 
@@ -38,14 +39,17 @@ def test_writer_outputs_agents_identity_bindings_and_manifest(tmp_path: Path) ->
 
     agents_path = write_agents_json(tmp_path, agents)
     identity_path = write_identity_bindings_json(tmp_path, [])
-    manifest_path = write_manifest_json(tmp_path, "dialogflowcx", len(agents), 0)
+    service_accounts_path = write_service_accounts_json(tmp_path, [])
+    manifest_path = write_manifest_json(tmp_path, "dialogflowcx", len(agents), 0, 0)
 
     assert agents_path.name == "agents.json"
     assert identity_path.name == "identity-bindings.json"
     assert manifest_path.name == "manifest.json"
+    assert service_accounts_path.name == "service-accounts.json"
     assert agents_path.exists()
     assert identity_path.exists()
     assert manifest_path.exists()
+    assert service_accounts_path.exists()
     assert json.loads(agents_path.read_text()) == [
         {
             "id": "dfcx-agent-001",

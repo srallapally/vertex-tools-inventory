@@ -185,6 +185,7 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
 
     assert (output_dir / "agents.json").exists()
     assert (output_dir / "identity-bindings.json").exists()
+    assert (output_dir / "service-accounts.json").exists()
     identity_bindings = json.loads((output_dir / "identity-bindings.json").read_text())
     assert any(
         binding["agentId"] == "dfcx-agent-001"
@@ -237,6 +238,15 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
             "knowledgeBaseIds": [],
             "guardrailId": None,
         },
+    ]
+    assert json.loads((output_dir / "service-accounts.json").read_text()) == [
+        {
+            "id": "projects/demo-proj/serviceAccounts/re-001@demo-proj.iam.gserviceaccount.com",
+            "platform": "GOOGLE_VERTEX_AI",
+            "email": "re-001@demo-proj.iam.gserviceaccount.com",
+            "projectId": "demo-proj",
+            "linkedAgentIds": ["re-001"],
+        }
     ]
 
 

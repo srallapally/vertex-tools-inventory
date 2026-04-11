@@ -193,11 +193,9 @@ def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
         and binding["scope"] == "resource"
         for binding in identity_bindings
     )
-    assert any(
+    assert not any(
         binding["agentId"] == "re-001"
-        and binding["sourceTag"] == "INHERITED_PROJECT_BINDING"
         and binding["iamMember"] == "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com"
-        and binding["scope"] == "project"
         for binding in identity_bindings
     )
     assert any(

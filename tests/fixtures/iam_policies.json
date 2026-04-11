@@ -15,7 +15,7 @@
     "projects/demo-proj": {
       "bindings": [
         {
-          "role": "roles/viewer",
+          "role": "roles/aiplatform.user",
           "members": [
             "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com",
             "group:analysts@example.com"

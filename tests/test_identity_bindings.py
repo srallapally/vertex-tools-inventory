@@ -63,11 +63,7 @@ def test_project_fallback_binding_when_resource_missing() -> None:
         },
     )
 
-    assert len(bindings) == 1
-    assert bindings[0].iamMember == "user:bob@example.com"
-    assert bindings[0].sourceTag == "INHERITED_PROJECT_BINDING"
-    assert bindings[0].scope == "project"
-    assert bindings[0].permissions == ["read"]
+    assert bindings == []
 
 
 def test_unexpanded_group_binding() -> None:
@@ -78,7 +74,7 @@ def test_unexpanded_group_binding() -> None:
             agent.resourceName: {
                 "bindings": [
                     {
-                        "role": "roles/viewer",
+                        "role": "roles/dialogflow.client",
                         "members": ["group:analysts@example.com"],
                     }
                 ]
@@ -91,6 +87,34 @@ def test_unexpanded_group_binding() -> None:
     assert bindings[0].principalType == "GROUP"
     assert bindings[0].expanded is False
     assert bindings[0].sourceTag == "UNEXPANDED_GROUP"
+    assert bindings[0].permissions == ["invoke"]
+
+
+def test_runtime_identity_self_binding_not_emitted() -> None:
+    agent = NormalizedAgent(
+        **{
+            **_agent().to_dict(),
+            "runtimeIdentity": "re-001@demo-proj.iam.gserviceaccount.com",
+        }
+    )
+    bindings = normalize_identity_bindings(
+        agents=[agent],
+        resource_policies={},
+        project_policies={
+            f"projects/{agent.projectId}": {
+                "bindings": [
+                    {
+                        "role": "roles/aiplatform.user",
+                        "members": [
+                            "serviceAccount:re-001@demo-proj.iam.gserviceaccount.com"
+                        ],
+                    }
+                ]
+            }
+        },
+    )
+
+    assert bindings == []
 
 
 def test_empty_iam_response_returns_no_bindings() -> None:

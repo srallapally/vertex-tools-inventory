@@ -1,13 +1,16 @@
 from pathlib import Path
 
-from main import load_config, parse_args
+import pytest
+
+from main import load_config, parse_args, run
 
 
 def _write_config(path: Path) -> None:
     path.write_text(
         (
             '{"flavor":"dialogflowcx",'
-            '"fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
             '"output_dir":"build/artifacts",'
             '"fixtures":false}'
         )
@@ -54,3 +57,121 @@ def test_config_plus_fixtures_overrides_file_value(tmp_path: Path) -> None:
     config = load_config(args)
 
     assert config.fixtures is True
+
+
+def test_dialogflow_flavor_accepts_valid_dialogflow_fixture_file(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    config = load_config(args)
+    assert config.dialogflow_fixture_path == Path("tests/fixtures/dialogflow_agent.json")
+
+
+def test_vertex_flavor_accepts_valid_vertex_fixture_file(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"vertexai",'
+            '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    config = load_config(args)
+    assert config.vertex_fixture_path == Path("tests/fixtures/reasoning_engine.json")
+
+
+def test_dialogflow_fixture_directory_raises_value_error(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"dialogflow_fixture_path":"tests/fixtures",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    with pytest.raises(ValueError, match="must be a file"):
+        load_config(args)
+
+
+def test_vertex_fixture_missing_file_raises_value_error(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"vertexai",'
+            '"vertex_fixture_path":"tests/fixtures/missing.json",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    with pytest.raises(ValueError, match="does not exist"):
+        load_config(args)
+
+
+def test_both_flavor_requires_both_fixture_files(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"both",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+    config = load_config(args)
+    assert config.dialogflow_fixture_path == Path("tests/fixtures/dialogflow_agent.json")
+    assert config.vertex_fixture_path == Path("tests/fixtures/reasoning_engine.json")
+
+
+def test_cli_overrides_apply_before_validation(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"dialogflowcx",'
+            '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            '"output_dir":"build/artifacts",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path), "--flavor", "vertexai"])
+    config = load_config(args)
+    assert config.flavor == "vertexai"
+
+
+def test_fixture_mode_run_writes_agents_json_for_both(tmp_path: Path) -> None:
+    output_dir = tmp_path / "out"
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        (
+            '{"flavor":"both",'
+            '"dialogflow_fixture_path":"tests/fixtures/dialogflow_agent.json",'
+            '"vertex_fixture_path":"tests/fixtures/reasoning_engine.json",'
+            f'"output_dir":"{output_dir}",'
+            '"fixtures":true}'
+        )
+    )
+
+    args = parse_args(["--config", str(config_path), "--fixtures"])
+    config = load_config(args)
+    run(config)
+
+    assert (output_dir / "agents.json").exists()

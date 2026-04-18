@@ -1,12 +1,19 @@
+# inventory/collectors/reasoning_engines.py
 from __future__ import annotations
 
 import json
-import subprocess
+import urllib.parse
+import urllib.request
 from pathlib import Path
+
+import google.auth
+import google.auth.transport.requests
 
 from inventory.config import InventoryConfig
 from inventory.models import NormalizedAgent
 from inventory.normalize.agents import normalize_reasoning_engine
+
+_SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 
 
 def collect_reasoning_engines_from_fixture(fixture_path: Path) -> list[NormalizedAgent]:
@@ -16,61 +23,61 @@ def collect_reasoning_engines_from_fixture(fixture_path: Path) -> list[Normalize
 
 
 def collect_reasoning_engines_live(config: InventoryConfig) -> list[NormalizedAgent]:
-    agents: list[NormalizedAgent] = []
+    credentials, _ = google.auth.default(scopes=_SCOPES)
+    auth_request = google.auth.transport.requests.Request()
 
+    agents: list[NormalizedAgent] = []
     for project_id in config.project_ids:
         for location in config.locations:
-            payload = _run_gcloud_json(
-                [
-                    "gcloud",
-                    "beta",
-                    "ai",
-                    "reasoning-engines",
-                    "list",
-                    f"--project={project_id}",
-                    f"--region={location}",
-                    "--format=json",
-                ]
-            )
-            for engine in payload if isinstance(payload, list) else []:
-                resource_name = engine.get("name")
-                if not resource_name:
-                    continue
-                agents.append(
-                    normalize_reasoning_engine(
-                        {
-                            "engine_id": resource_name.rsplit("/", 1)[-1],
-                            "project_id": project_id,
-                            "location": location,
-                            "display_name": engine.get("displayName", ""),
-                            "resource_name": resource_name,
-                            "service_account_identity": engine.get("serviceAccount"),
-                        }
-                    )
-                )
-
+            agents.extend(_list_engines(project_id, location, credentials, auth_request))
     return agents
 
 
-def _run_gcloud_json(command: list[str]) -> list[dict] | dict:
-    try:
-        completed = subprocess.run(
-            command,
-            check=False,
-            capture_output=True,
-            text=True,
+def _list_engines(
+    project_id: str,
+    location: str,
+    credentials: google.auth.credentials.Credentials,
+    auth_request: google.auth.transport.requests.Request,
+) -> list[NormalizedAgent]:
+    agents: list[NormalizedAgent] = []
+    page_token: str | None = None
+    base_url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/reasoningEngines"
+
+    while True:
+        if not credentials.valid:
+            credentials.refresh(auth_request)
+
+        params: dict[str, str] = {}
+        if page_token:
+            params["pageToken"] = page_token
+        url = f"{base_url}?{urllib.parse.urlencode(params)}" if params else base_url
+
+        request = urllib.request.Request(
+            url,
+            headers={"Authorization": f"Bearer {credentials.token}"},
         )
-    except OSError:
-        return []
+        with urllib.request.urlopen(request) as response:
+            body = json.loads(response.read().decode("utf-8"))
 
-    if completed.returncode != 0 or not completed.stdout.strip():
-        return []
+        for engine in body.get("reasoningEngines", []):
+            resource_name = engine.get("name")
+            if not resource_name:
+                continue
+            agents.append(
+                normalize_reasoning_engine(
+                    {
+                        "engine_id": resource_name.rsplit("/", 1)[-1],
+                        "project_id": project_id,
+                        "location": location,
+                        "display_name": engine.get("displayName", ""),
+                        "resource_name": resource_name,
+                        "service_account_identity": engine.get("serviceAccount"),
+                    }
+                )
+            )
 
-    try:
-        parsed = json.loads(completed.stdout)
-    except json.JSONDecodeError:
-        return []
+        page_token = body.get("nextPageToken")
+        if not page_token:
+            break
 
-    if isinstance(parsed, (list, dict)):
-        return parsed
-    return []
+    return agents

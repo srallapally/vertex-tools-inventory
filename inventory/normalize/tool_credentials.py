@@ -6,25 +6,15 @@ import hashlib
 from inventory.models import NormalizedToolCredential
 
 
-def normalize_tool_credentials(
-    webhooks: list[dict],
-    agent_resource_name: str,
-    project_id: str,
-    location: str,
-) -> list[NormalizedToolCredential]:
+def normalize_tool_credentials(webhooks: list[dict]) -> list[NormalizedToolCredential]:
     """
     Normalize raw Dialogflow CX webhook API responses into NormalizedToolCredential objects.
     Entries where authType resolves to NONE are excluded.
-
-    Args:
-        webhooks: raw webhook dicts from the Dialogflow CX webhooks.list API response.
-        agent_resource_name: full resource name of the parent agent.
-        project_id: GCP project ID.
-        location: GCP region.
+    agentId, projectId, and location are derived from each webhook's name field.
     """
     results = []
     for webhook in webhooks:
-        credential = _normalize_one(webhook, agent_resource_name, project_id, location)
+        credential = _normalize_one(webhook)
         if credential is not None:
             results.append(credential)
     return results
@@ -57,12 +47,7 @@ def make_tool_key(tool_id: str) -> str:
     return tool_id.replace("/", "_")
 
 
-def _normalize_one(
-    webhook: dict,
-    agent_resource_name: str,
-    project_id: str,
-    location: str,
-) -> NormalizedToolCredential | None:
+def _normalize_one(webhook: dict) -> NormalizedToolCredential | None:
     tool_id = webhook.get("name", "")
     if not tool_id:
         return None
@@ -70,6 +55,12 @@ def _normalize_one(
     auth_type, credential_ref = derive_webhook_auth(webhook)
     if auth_type == "NONE":
         return None
+
+    # name format: projects/{project}/locations/{location}/agents/{agent}/webhooks/{webhook}
+    parts = tool_id.split("/")
+    project_id = parts[1] if len(parts) > 1 else ""
+    location = parts[3] if len(parts) > 3 else ""
+    agent_resource_name = "/".join(parts[:6]) if len(parts) >= 6 else ""
 
     return NormalizedToolCredential(
         id=_make_credential_id(tool_id),

@@ -1,3 +1,4 @@
+# inventory/models.py
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -55,6 +56,22 @@ class NormalizedServiceAccount:
     email: str
     projectId: str
     linkedAgentIds: list[str]
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class NormalizedToolCredential:
+    id: str
+    toolId: str
+    toolKey: str
+    toolType: str
+    agentId: str
+    authType: str
+    credentialRef: str
+    projectId: str
+    location: str
 
     def to_dict(self) -> dict:
         return asdict(self)

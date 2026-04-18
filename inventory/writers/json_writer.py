@@ -1,3 +1,4 @@
+# inventory/writers/json_writer.py
 from __future__ import annotations
 
 import json
@@ -8,6 +9,7 @@ from inventory.models import (
     NormalizedAgent,
     NormalizedIdentityBinding,
     NormalizedServiceAccount,
+    NormalizedToolCredential,
 )
 
 
@@ -39,6 +41,17 @@ def write_service_accounts_json(
     return path
 
 
+def write_tool_credentials_json(
+    output_dir: Path, tool_credentials: list[NormalizedToolCredential]
+) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / "tool-credentials.json"
+    path.write_text(
+        json.dumps([tc.to_dict() for tc in tool_credentials], indent=2) + "\n"
+    )
+    return path
+
+
 def write_manifest_json(
     output_dir: Path,
     collection_mode: str,
@@ -49,6 +62,7 @@ def write_manifest_json(
     identity_binding_count: int,
     service_account_count: int,
     warnings: list[str],
+    tool_credential_count: int = 0,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / "manifest.json"
@@ -63,6 +77,7 @@ def write_manifest_json(
         "agentCount": agent_count,
         "identityBindingCount": identity_binding_count,
         "serviceAccountCount": service_account_count,
+        "toolCredentialCount": tool_credential_count,
         "artifacts": {
             "agents": {"file": "agents.json", "count": agent_count},
             "identityBindings": {
@@ -72,6 +87,10 @@ def write_manifest_json(
             "serviceAccounts": {
                 "file": "service-accounts.json",
                 "count": service_account_count,
+            },
+            "toolCredentials": {
+                "file": "tool-credentials.json",
+                "count": tool_credential_count,
             },
         },
         "warnings": warnings,

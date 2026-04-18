@@ -15,6 +15,7 @@ class InventoryConfig:
     dialogflow_fixture_path: Path | None
     vertex_fixture_path: Path | None
     iam_fixture_path: Path | None
+    tool_credentials_fixture_path: Path | None
     output_dir: Path
     bucket_name: str | None = None
     bucket_prefix: str = ""
@@ -43,6 +44,11 @@ class InventoryConfig:
         )
         iam_fixture_path = (
             Path(payload["iam_fixture_path"]) if payload.get("iam_fixture_path") else None
+        )
+        tool_credentials_fixture_path = (
+            Path(payload["tool_credentials_fixture_path"])
+            if payload.get("tool_credentials_fixture_path")
+            else None
         )
         bucket_name = payload.get("bucketName")
         project_ids = payload.get("project_ids") or payload.get("projectIds")
@@ -106,11 +112,23 @@ class InventoryConfig:
                     f"iam_fixture_path must be a file, not a directory: {iam_fixture_path}"
                 )
 
+            if tool_credentials_fixture_path is not None:
+                if not tool_credentials_fixture_path.exists():
+                    raise ValueError(
+                        f"tool_credentials_fixture_path does not exist: {tool_credentials_fixture_path}"
+                    )
+                if not tool_credentials_fixture_path.is_file():
+                    raise ValueError(
+                        f"tool_credentials_fixture_path must be a file, not a directory: "
+                        f"{tool_credentials_fixture_path}"
+                    )
+
         return cls(
             flavor=flavor,
             dialogflow_fixture_path=dialogflow_fixture_path,
             vertex_fixture_path=vertex_fixture_path,
             iam_fixture_path=iam_fixture_path,
+            tool_credentials_fixture_path=tool_credentials_fixture_path,
             output_dir=output_dir,
             bucket_name=bucket_name,
             bucket_prefix=bucket_prefix,

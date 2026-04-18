@@ -12,6 +12,7 @@ from inventory.collectors.dialogflow import (
     collect_dialogflow_agents_live,
 )
 from inventory.collectors.iam import collect_iam_policies_from_fixture, collect_iam_policies_live
+from inventory.collectors.service_accounts import collect_service_accounts_live
 from inventory.collectors.reasoning_engines import (
     collect_reasoning_engines_from_fixture,
     collect_reasoning_engines_live,
@@ -92,7 +93,11 @@ def run(config: InventoryConfig) -> None:
         resource_policies=resource_policies,
         project_policies=project_policies,
     )
+    # OPENICF-4009: enrich SA metadata from IAM API in live mode only
     service_accounts = normalize_service_accounts(agents)
+    if not config.fixtures:
+        sa_enrichment = collect_service_accounts_live(service_accounts)
+        service_accounts = normalize_service_accounts(agents, enrichment=sa_enrichment)
     tool_credentials = normalize_tool_credentials(raw_webhooks)
     warnings = _build_manifest_warnings(identity_bindings)
     flavors_included = sorted({agent.flavor for agent in agents})

@@ -56,6 +56,16 @@ class NormalizedServiceAccount:
     email: str
     projectId: str
     linkedAgentIds: list[str]
+    # OPENICF-4009: enriched from IAM SA GET + keys LIST
+    name: str | None = None
+    displayName: str | None = None
+    description: str | None = None
+    uniqueId: str | None = None
+    oauth2ClientId: str | None = None
+    disabled: bool = False
+    createTime: str | None = None
+    keysJson: str | None = None
+    keyCount: int = 0
 
     def to_dict(self) -> dict:
         return asdict(self)

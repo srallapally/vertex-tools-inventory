@@ -1,9 +1,13 @@
+# inventory/normalize/service_accounts.py
 from __future__ import annotations
 
 from inventory.models import NormalizedAgent, NormalizedServiceAccount
 
 
-def normalize_service_accounts(agents: list[NormalizedAgent]) -> list[NormalizedServiceAccount]:
+def normalize_service_accounts(
+    agents: list[NormalizedAgent],
+    enrichment: dict[str, dict] | None = None,
+) -> list[NormalizedServiceAccount]:
     deduped: dict[str, NormalizedServiceAccount] = {}
 
     for agent in agents:
@@ -37,7 +41,33 @@ def normalize_service_accounts(agents: list[NormalizedAgent]) -> list[Normalized
             linkedAgentIds=[*existing.linkedAgentIds, agent.id],
         )
 
-    return list(deduped.values())
+    # OPENICF-4009: apply enrichment from IAM SA GET + keys LIST
+    if not enrichment:
+        return list(deduped.values())
+
+    enriched: list[NormalizedServiceAccount] = []
+    for sa in deduped.values():
+        data = enrichment.get(sa.id)
+        if data is None:
+            enriched.append(sa)
+            continue
+        enriched.append(NormalizedServiceAccount(
+            id=sa.id,
+            platform=sa.platform,
+            email=sa.email,
+            projectId=sa.projectId,
+            linkedAgentIds=sa.linkedAgentIds,
+            name=data.get("name"),
+            displayName=data.get("displayName"),
+            description=data.get("description"),
+            uniqueId=data.get("uniqueId"),
+            oauth2ClientId=data.get("oauth2ClientId"),
+            disabled=data.get("disabled", False),
+            createTime=data.get("createTime"),
+            keysJson=data.get("keysJson"),
+            keyCount=data.get("keyCount", 0),
+        ))
+    return enriched
 
 
 def _normalize_runtime_identity(runtime_identity: str) -> str:

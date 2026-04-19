@@ -1,7 +1,10 @@
 {
   "flavor": "both",
   "fixtures": false,
-  "projectIds": ["YOUR_GCP_PROJECT_ID"],
+  "projectIds": ["gen-lang-client-0559379892"],
   "locations": ["us-central1"],
-  "output_dir": "/tmp/out"
+  "output_dir": "/tmp/out",
+  "bucketName": "gen-lang-client-0559379892-vertex-inventory",
+  "bucketPrefix": "vertex-inventory",
+  "writeLatest": true
 }

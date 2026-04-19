@@ -14,7 +14,8 @@ from inventory.models import NormalizedAgent
 from inventory.normalize.agents import normalize_dialogflow_agent
 
 _SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
-_BASE_URL = "https://dialogflow.googleapis.com/v3"
+def _base_url(location: str) -> str:
+    return f"https://{location}-dialogflow.googleapis.com/v3"
 
 
 def collect_dialogflow_agents_from_fixture(fixture_path: Path) -> list[NormalizedAgent]:
@@ -50,7 +51,8 @@ def _list_agents(
         params: dict[str, str] = {}
         if page_token:
             params["pageToken"] = page_token
-        url = f"{_BASE_URL}/projects/{project_id}/locations/{location}/agents"
+        base_url = _base_url(location)
+        url = f"{base_url}/projects/{project_id}/locations/{location}/agents"
         if params:
             url = f"{url}?{urllib.parse.urlencode(params)}"
 

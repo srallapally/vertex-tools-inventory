@@ -65,7 +65,8 @@ def _get_resource_policy(
     or None if the HTTP call failed (non-2xx). Logs a WARNING on failure.
     """
     if agent.flavor == "dialogflowcx":
-        url = f"{_DIALOGFLOW_BASE}/{agent.resourceName}:getIamPolicy"
+        location = agent.location or "us-central1"
+        url = f"https://{location}-dialogflow.googleapis.com/v3/{agent.resourceName}:getIamPolicy"
     else:
         url = f"https://{agent.location}-aiplatform.googleapis.com/v1/{agent.resourceName}:getIamPolicy"
 

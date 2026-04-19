@@ -48,7 +48,9 @@ def _list_webhooks(
     if not credentials.valid:
         credentials.refresh(auth_request)
 
-    url = f"https://dialogflow.googleapis.com/v3/{agent_resource_name}/webhooks"
+    parts = agent_resource_name.split("/")
+    location = parts[3] if len(parts) > 3 else "us-central1"
+    url = f"https://{location}-dialogflow.googleapis.com/v3/{agent_resource_name}/webhooks"
     request = urllib.request.Request(
         url,
         headers={"Authorization": f"Bearer {credentials.token}"},
